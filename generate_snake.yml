@@ -1,0 +1,46 @@
+name: Generate Snake
+on:
+  schedule: # Run at 5:00 AM UTC every day
+    - cron: '0 5 * * *'
+  push: # Run on push to main branch
+    branches:
+      - main
+
+jobs:
+  generate:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v2
+      - name: Generate Snake
+        uses: Platane/snk@master
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          output: dist/github-snake.svg
+      - name: Upload Snake
+        uses: actions/upload-artifact@v2
+        with:
+          name: github-snake
+          path: dist/github-snake.svg
+
+  update-readme:
+    needs: generate
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v2
+      - name: Download Snake
+        uses: actions/download-artifact@v2
+        with:
+          name: github-snake
+          path: dist
+      - name: Update README
+        run: |
+          sed -i 's|!\[GitHub Snake\](.*)|![GitHub Snake](./dist/github-snake.svg)|' README.md
+      - name: Commit changes
+        run: |
+          git config --global user.name 'github-actions[bot]'
+          git config --global user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add README.md
+          git commit -m 'Update README with GitHub Snake'
+          git push
